@@ -10,38 +10,45 @@ export class TabBar {
         b.push({ name: "Upgrades", box: new SimpleBox(transparent) });
         b.push({ name: "Settings", box: new SimpleBox(transparent) });
         let klicked = false;
-        mouse.addEvent("all", "LeftDown", () => {
+        const check = (event) => {
+            const low = this.buttons
+                .map((v) => event.pos.x + myctx.width() * 0.5 - v.box.pos.x - v.box.size.x * 0.5)
+                .reduceRight((p, v, i) => (p.dx > v && v > 0 ? { i, dx: v } : p), { i: 0, dx: Infinity });
+            const high = this.buttons
+                .map((v) => event.pos.x + myctx.width() * 0.5 - v.box.pos.x - v.box.size.x * 0.5)
+                .reduce((p, v, i) => (p.dx < v && v < 0 ? { i, dx: v } : p), {
+                i: this.buttons.length - 1,
+                dx: -Infinity,
+            });
+            if (!isFinite(low.dx)) {
+                this.t = low.i;
+                return;
+            }
+            if (!isFinite(high.dx)) {
+                this.t = high.i;
+                return;
+            }
+            const length = low.dx - high.dx;
+            this.t = low.i + low.dx / length;
+        };
+        mouse.addEvent("all", "LeftDown", (event) => {
             const bg = this.background;
             if (Math.abs(mouse.pos.x + myctx.width() * 0.5 - bg.pos.x) < bg.size.x &&
                 Math.abs(mouse.pos.y + myctx.height() * 0.5 - bg.pos.y) < bg.size.y) {
                 klicked = true;
+                check(event);
             }
         });
-        mouse.addEvent("all", "LeftUp", () => {
+        mouse.addEvent("all", "LeftUp", (event) => {
+            if (klicked) {
+                check(event);
+            }
             klicked = false;
             this.t = Math.round(this.t);
         });
         mouse.addEvent("all", "Move", (event) => {
             if (klicked) {
-                const low = this.buttons
-                    .map((v) => event.pos.x + myctx.width() * 0.5 - v.box.pos.x - v.box.size.x * 0.5)
-                    .reduceRight((p, v, i) => (p.dx > v && v > 0 ? { i, dx: v } : p), { i: 0, dx: Infinity });
-                const high = this.buttons
-                    .map((v) => event.pos.x + myctx.width() * 0.5 - v.box.pos.x - v.box.size.x * 0.5)
-                    .reduce((p, v, i) => (p.dx < v && v < 0 ? { i, dx: v } : p), {
-                    i: this.buttons.length - 1,
-                    dx: -Infinity,
-                });
-                if (!isFinite(low.dx)) {
-                    this.t = low.i;
-                    return;
-                }
-                if (!isFinite(high.dx)) {
-                    this.t = high.i;
-                    return;
-                }
-                const length = low.dx - high.dx;
-                this.t = low.i + low.dx / length;
+                check(event);
             }
         });
     }
@@ -79,12 +86,12 @@ export class TabBar {
                 (low.size.y * (1 - tt) + high.size.y * tt) * (0.25 - Math.abs(tt - 0.5) * 0.5) * 0.5;
         p.size.x = (low.size.x * (1 - tt) + high.size.x * tt) * (0.5 + Math.abs(tt - 0.5));
         p.size.y = (low.size.y * (1 - tt) + high.size.y * tt) * (0.75 + Math.abs(tt - 0.5) * 0.5);
-        if (p.smoothPos.x < bg.pos.x) {
-            p.smoothSize.x += p.smoothPos.x - bg.pos.x;
-            p.smoothPos.x = bg.pos.x;
+        if (p.smoothPos.x < bg.smoothPos.x) {
+            p.smoothSize.x += p.smoothPos.x - bg.smoothPos.x;
+            p.smoothPos.x = bg.smoothPos.x;
         }
-        if (p.smoothPos.x + p.smoothSize.x > bg.pos.x + bg.size.x) {
-            p.smoothSize.x = bg.pos.x + bg.size.x - p.smoothPos.x;
+        if (p.smoothPos.x + p.smoothSize.x > bg.smoothPos.x + bg.smoothSize.x) {
+            p.smoothSize.x = bg.smoothPos.x + bg.smoothSize.x - p.smoothPos.x;
         }
         bg.render(dt);
         p.render(dt);
